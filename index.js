@@ -5,19 +5,18 @@ var filename = process.argv[2];
 if (filename) {
   console.log("filename:", filename);
   var tail = cp.spawn("tail", ["-f", filename]);
-  console.log("start tailing");
 
-  tail.addListener("output", function(data) {
-    console.log(data);
+  var body = "";
+  tail.stdout.on("data", function(data) {
+    body = data.toString();
+    console.log("tail.stdout.on:", data.toString());
   });
 
   http
     .createServer(function(req, res) {
       res.writeHead(200, { "Content-Type": "text/plain" });
-      tail.addListener("output", function(data) {
-        res.sendBody("data");
-      });
-      res.end("okay");
+      res.write(body);
+      res.end();
     })
     .listen(8000);
 }
