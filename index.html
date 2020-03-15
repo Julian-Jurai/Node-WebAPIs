@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Hey node</title>
+    <meta charset="utf-8" />
+  </head>
+
+  <body>
+    <div id="watch"></div>
+    <button onclick="pollWithAjax()">Polling with ajax</button>
+    <p>
+      This is an example paragraph. Anything in the <strong>body</strong> tag
+      will appear on the page, just like this <strong>p</strong> tag and its
+      contents.
+    </p>
+  </body>
+
+  <script>
+    function pollWithAjax() {
+      var i = setInterval(() => {
+        fetch("/watch")
+          .then(response => {
+            return response.text();
+          })
+          .then(data => {
+            console.log(JSON.stringify(data));
+            document.getElementById("watch").innerText = data;
+          })
+          .catch(() => {
+            console.log("Stopping, server disconnected");
+            clearInterval(i);
+          });
+      }, 1000);
+    }
+  </script>
+</html>
