@@ -3,34 +3,160 @@
   <head>
     <title>Hey node</title>
     <meta charset="utf-8" />
+    <style>
+      input {
+        padding: 5px;
+        border-radius: 6px;
+        margin: 10px;
+      }
+
+      form {
+        display: inline;
+      }
+
+      .card {
+        min-width: 300px;
+        height: 200px;
+        border: 1px solid black;
+        border-radius: 5px;
+        margin: 20px;
+        transition: border 500ms ease-out;
+      }
+
+      .active {
+        border: 1px solid red;
+      }
+
+      .container {
+        display: flex;
+      }
+
+      .btn {
+        cursor: pointer;
+        background-color: #008cba; /* Green */
+        border: none;
+        color: white;
+        border-radius: 5px;
+        padding: 10px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 12px;
+        margin: 10px;
+      }
+
+      .message-up {
+        background: lightgreen;
+      }
+
+      .message-down {
+        background: lightpink;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      .feed {
+        font-family: "Courier New", Courier, monospace;
+        padding: 10px;
+        font-size: 12px;
+        height: 55%;
+        overflow: scroll;
+      }
+    </style>
   </head>
 
   <body>
-    <div id="watch"></div>
-    <button onclick="pollWithAjax()">Polling with ajax</button>
-    <p>
-      This is an example paragraph. Anything in the <strong>body</strong> tag
-      will appear on the page, just like this <strong>p</strong> tag and its
-      contents.
-    </p>
+    <em>index.html</em>
+    <div class="container">
+      <div class="card">
+        <div>
+          <button class="ajax btn">Start Ajax</button>
+        </div>
+        <div class="feed" id="ajax-messages"></div>
+      </div>
+      <div class="card">
+        <button class="ws btn" onclick="">Start Websockets</button>
+        <span>
+          <form id="ws-form">
+            <input
+              id="ws-input"
+              type="text"
+              class="hidden"
+              value=""
+              placeholder="Send message to server"
+            />
+          </form>
+        </span>
+        <div class="feed">
+          <div id="websocket-messages"></div>
+        </div>
+      </div>
+    </div>
   </body>
 
   <script>
-    function pollWithAjax() {
+    // AJAX POLLING
+    document.querySelector(".ajax.btn").addEventListener("click", () => {
       var i = setInterval(() => {
-        fetch("/watch")
+        fetch("/ajax")
           .then(response => {
             return response.text();
           })
           .then(data => {
             console.log(JSON.stringify(data));
-            document.getElementById("watch").innerText = data;
+            document.getElementById("ajax-messages").innerText = data;
+            document.querySelectorAll(".card")[0].classList.add("a");
           })
           .catch(() => {
             console.log("Stopping, server disconnected");
             clearInterval(i);
           });
       }, 1000);
-    }
+    });
+
+    // WEB SOCKET
+    document.querySelector(".ws.btn").addEventListener("click", () => {
+      if (window.WS_CREATED) return;
+
+      window.WS_CREATED = true;
+      const ws = new WebSocket("ws://localhost:8000/");
+      const sendMessage = message => {
+        if (message) {
+          ws.send(message);
+          var div = document.createElement("div");
+          div.classList.add("message-up");
+          div.innerText = "⬆  " + message.toString();
+          document.getElementById("websocket-messages").prepend(div);
+        }
+      };
+
+      ws.onopen = function() {
+        console.log("WebSocket Client Connected");
+        sendMessage("Client Connected");
+      };
+
+      ws.onmessage = e => {
+        console.log("Received: '" + e.data + "'");
+        if (e.data) {
+          var div = document.createElement("div");
+          div.classList.add("message-down");
+          div.innerText = "⬇  " + e.data;
+          document.getElementById("websocket-messages").prepend(div);
+        }
+      };
+
+      const input = document.getElementById("ws-input");
+      input.classList.remove("hidden");
+
+      const form = document.getElementById("ws-form");
+      form.addEventListener("submit", e => {
+        e.preventDefault();
+        if (input.value) {
+          sendMessage(input.value);
+        }
+      });
+    });
   </script>
 </html>
