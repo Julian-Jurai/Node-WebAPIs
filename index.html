@@ -14,8 +14,26 @@
         display: inline;
       }
 
+      button {
+        cursor: pointer;
+        background-color: #008cba;
+        border: none;
+        color: white;
+        border-radius: 5px;
+        padding: 10px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 12px;
+        margin: 10px;
+      }
+
+      button:hover {
+        opacity: 0.6;
+      }
+
       .card {
-        min-width: 300px;
+        width: 400px;
         height: 200px;
         border: 1px solid black;
         border-radius: 5px;
@@ -31,18 +49,8 @@
         display: flex;
       }
 
-      .btn {
-        cursor: pointer;
-        background-color: #008cba; /* Green */
-        border: none;
-        color: white;
-        border-radius: 5px;
-        padding: 10px;
-        text-align: center;
-        text-decoration: none;
-        display: inline-block;
-        font-size: 12px;
-        margin: 10px;
+      button.active {
+        background-color: red;
       }
 
       .message-up {
@@ -72,12 +80,16 @@
     <div class="container">
       <div class="card">
         <div>
-          <button class="ajax btn">Start Ajax</button>
+          <button class="ajax-start btn">Start Ajax</button>
+          <button class="ajax-stop active hidden btn">Stop Ajax</button>
         </div>
         <div class="feed" id="ajax-messages"></div>
       </div>
       <div class="card">
-        <button class="ws btn" onclick="">Start Websockets</button>
+        <button class="ws-start btn" onclick="">Start Websocket</button>
+        <button class="ws-stop active hidden btn" onclick="">
+          Close Websocket
+        </button>
         <span>
           <form id="ws-form">
             <input
@@ -93,12 +105,23 @@
           <div id="websocket-messages"></div>
         </div>
       </div>
+      <div class="card">
+        <button class="sse-start btn" onclick="">
+          Start Server Sent Events
+        </button>
+        <button class="sse-stop btn active hidden" onclick="">
+          Stop Server Sent Events
+        </button>
+        <div class="feed">
+          <div id="sse-messages"></div>
+        </div>
+      </div>
     </div>
   </body>
 
   <script>
     // AJAX POLLING
-    document.querySelector(".ajax.btn").addEventListener("click", () => {
+    document.querySelector(".ajax-start.btn").addEventListener("click", () => {
       var i = setInterval(() => {
         fetch("/ajax")
           .then(response => {
@@ -114,15 +137,39 @@
             clearInterval(i);
           });
       }, 1000);
+
+      var stopBtn = document.querySelector(".ajax-stop.btn");
+      var startBtn = document.querySelector(".ajax-start.btn");
+      stopBtn.classList.remove("hidden");
+      startBtn.classList.add("hidden");
+      stopBtn.addEventListener("click", () => {
+        clearInterval(i);
+        stopBtn.classList.add("hidden");
+        startBtn.classList.remove("hidden");
+      });
     });
 
     // WEB SOCKET
-    document.querySelector(".ws.btn").addEventListener("click", () => {
-      if (window.WS_CREATED) return;
+    document.querySelector(".ws-start.btn").addEventListener("click", () => {
+      if (
+        window._WS_ &&
+        (window._WS_.readyState == WebSocket.CONNECTING ||
+          window._WS_.readyState == WebSocket.OPEN)
+      ) {
+        return;
+      }
 
-      window.WS_CREATED = true;
       const ws = new WebSocket("ws://localhost:8000/");
+      window._WS_ = ws;
+
       const sendMessage = message => {
+        if (
+          window._WS_ &&
+          (window._WS_.readyState == WebSocket.CLOSING ||
+            window._WS_.readyState == WebSocket.CLOSED)
+        ) {
+          return;
+        }
         if (message) {
           ws.send(message);
           var div = document.createElement("div");
@@ -135,6 +182,9 @@
       ws.onopen = function() {
         console.log("WebSocket Client Connected");
         sendMessage("Client Connected");
+      };
+      ws.onclose = function() {
+        console.log("WebSocket Client Disconnected");
       };
 
       ws.onmessage = e => {
@@ -156,6 +206,49 @@
         if (input.value) {
           sendMessage(input.value);
         }
+      });
+
+      var stopBtn = document.querySelector(".ws-stop.btn");
+      var startBtn = document.querySelector(".ws-start.btn");
+      stopBtn.classList.remove("hidden");
+      startBtn.classList.add("hidden");
+      stopBtn.addEventListener("click", () => {
+        ws.close();
+        input.classList.add("hidden");
+        stopBtn.classList.add("hidden");
+        startBtn.classList.remove("hidden");
+      });
+    });
+
+    // SSE
+    document.querySelector(".sse-start.btn").addEventListener("click", () => {
+      if (!!window.EventSource) {
+        var source = new EventSource("http://localhost:8000/sse");
+
+        source.addEventListener("message", function(e) {
+          console.log("SSE:", e.data);
+          var div = document.createElement("div");
+          div.classList.add("message-up");
+          div.innerText = "⬇  " + e.data;
+          document.getElementById("sse-messages").prepend(div);
+        });
+
+        source.addEventListener("open", function(e) {
+          console.log("SSE Connection Opened");
+        });
+        source.addEventListener("close", function(e) {
+          console.log("SSE Connection Closed");
+        });
+      }
+
+      var stopBtn = document.querySelector(".sse-stop.btn");
+      var startBtn = document.querySelector(".sse-start.btn");
+      stopBtn.classList.remove("hidden");
+      startBtn.classList.add("hidden");
+      stopBtn.addEventListener("click", () => {
+        source.close();
+        stopBtn.classList.add("hidden");
+        startBtn.classList.remove("hidden");
       });
     });
   </script>

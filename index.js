@@ -3,15 +3,17 @@ var http = require("http");
 var fs = require("fs");
 var WebSocketServer = require("websocket").server;
 var filename = process.argv[2];
+var sseCount = 0;
+var connectionCount = 0;
 
 if (filename) {
   console.log("tail -f", filename);
   var tail = cp.spawn("tail", ["-f", filename]);
 
-  var tailData = "";
+  var fileContents = "";
   tail.stdout.on("data", function(data) {
-    tailData = data.toString();
-    console.log(tailData);
+    fileContents = data.toString();
+    console.log(fileContents);
   });
 
   const server = http
@@ -26,7 +28,22 @@ if (filename) {
           break;
         case "/ajax":
           res.writeHead(200, { "Content-Type": "text/plain" });
-          res.write(tailData);
+          res.write(fileContents);
+          res.end();
+          break;
+        case "/sse":
+          res.writeHead(200, {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            Connection: "keep-alive"
+          });
+          res.write("event: message\n");
+          if (sseCount === 0) {
+            sseCount += 1;
+            res.write("data: Initial SSE Event\n\n");
+          } else {
+            res.write(`data: Server Connections ${connectionCount}\n\n`);
+          }
           res.end();
           break;
         default:
@@ -34,6 +51,12 @@ if (filename) {
       }
     })
     .listen(8000);
+
+  setInterval(function() {
+    server.getConnections(function(_err, count) {
+      connectionCount = count;
+    });
+  }, 1000);
 
   const websocketServer = new WebSocketServer({ httpServer: server });
   websocketServer.on("request", function(request) {
@@ -46,7 +69,7 @@ if (filename) {
 
     function handleFileChange(eventType) {
       if (eventType === "change") {
-        connection.sendUTF(`File changed:\n ${tailData}`);
+        connection.sendUTF(`File changed:\n ${fileContents}`);
       }
     }
 
