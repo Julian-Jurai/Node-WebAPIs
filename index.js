@@ -7,13 +7,11 @@ var sseCount = 0;
 var connectionCount = 0;
 
 if (filename) {
-  console.log("tail -f", filename);
+  // Sample Process tailing test.txt
   var tail = cp.spawn("tail", ["-f", filename]);
-
   var fileContents = "";
   tail.stdout.on("data", function(data) {
     fileContents = data.toString();
-    console.log(fileContents);
   });
 
   const server = http
@@ -51,6 +49,7 @@ if (filename) {
       }
     })
     .listen(8000);
+  console.log("✅  Server running on http://localhost:8000/");
 
   setInterval(function() {
     server.getConnections(function(_err, count) {
