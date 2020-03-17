@@ -14,7 +14,7 @@ This project is a demonstration of using various means of communicating with a s
 
 ### AJAX polling demo
 
-Clicking _Start Ajax_ creates an loop that continuously fetches information from the server. To demonstarte the changes being updated, make a change to the `test.txt` file to see it reflected in the client.
+Clicking _Start Ajax_ creates a loop that continuously fetches information from the server. To demonstrate the changes being updated, make a change to the `test.txt` file to see it reflected in the client.
 
 | Client |
 | ------ |
@@ -52,7 +52,7 @@ const server = http
 
 ### Websocket demo
 
-Clicking _Start Websocket_ opens a connection to the http server and enables a text input which pushes messages to the server. Messages sent to server appear in green and messages recieved from appear in red.
+Clicking _Start Websocket_ opens a connection to the http server and enables a text input which pushes messages to the server. Messages sent to server appear in green and messages recieved from appear in red. To demonstrate the changes being pushed, make a change to the `test.txt` file to see it reflected in the client.
 
 | Client |
 | ------ |
